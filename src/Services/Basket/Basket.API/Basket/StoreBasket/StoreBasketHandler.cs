@@ -12,15 +12,25 @@ public class StoreBasketCommandValidation : AbstractValidator<StoreBasketCommand
     }
 }
 
-internal class StoreBasketCommandHandler(IBasketRepository repository) 
+internal class StoreBasketCommandHandler(IBasketRepository repository, DiscountProtoService.DiscountProtoServiceClient discountProto) 
     : ICommandHandler<StoreBasketCommand, StoreBasketResult>
 {
     public async Task<StoreBasketResult> Handle(StoreBasketCommand command, CancellationToken cancellationToken)
-    {
-        // TODO: store basket in database (use Marten upsert - if exist = update, it not = insert
-        // TODO: update cache
+    { 
+        await DeductDiscount(command.Cart, cancellationToken);
+        
         await repository.StoreBasket(command.Cart, cancellationToken);
 
         return new StoreBasketResult(command.Cart.UserName);
+    }
+
+    private async Task DeductDiscount(ShoppingCart cart, CancellationToken cancellationToken)
+    {
+        // communicate with Discount.Grpc and calculate latest prices of products into cart
+        foreach (var item in cart.Items)
+        {
+            var coupon = await discountProto.GetDiscountAsync(new GetDiscountRequest { ProductName = item.ProductName }, cancellationToken: cancellationToken);
+            item.Price -= coupon.Amount;
+        }
     }
 }
