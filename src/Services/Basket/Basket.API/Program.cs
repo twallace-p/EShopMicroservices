@@ -1,4 +1,4 @@
-
+using BuildingBlocks.Messaging.MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +44,9 @@ builder.Services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>(
 
     return handler;
 });
+
+//Aysnc Communication Services
+builder.Services.AddMessageBroker(builder.Configuration);
 
 // Cross-Cutting Services
 builder.Services.AddValidatorsFromAssembly(assembly);
